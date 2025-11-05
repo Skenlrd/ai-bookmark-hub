@@ -1,4 +1,5 @@
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ export const BookmarkCard = ({
   notes,
   onDelete,
 }: BookmarkCardProps) => {
+  const [syncing, setSyncing] = useState(false);
+
   const handleDelete = async () => {
     const { error } = await supabase
       .from('bookmarks')
@@ -40,6 +43,20 @@ export const BookmarkCard = ({
       toast.success("Bookmark deleted");
       onDelete();
     }
+  };
+
+  const handleNotionSync = async () => {
+    setSyncing(true);
+    const { error } = await supabase.functions.invoke('notion-sync', {
+      body: { bookmarkId: id }
+    });
+
+    if (error) {
+      toast.error(error.message || "Failed to sync to Notion");
+    } else {
+      toast.success("Synced to Notion successfully!");
+    }
+    setSyncing(false);
   };
 
   return (
@@ -75,14 +92,24 @@ export const BookmarkCard = ({
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNotionSync}
+              disabled={syncing}
+              title="Sync to Notion"
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
         </div>
         {description && (
           <CardDescription className="text-sm line-clamp-2">

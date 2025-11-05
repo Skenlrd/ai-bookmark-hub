@@ -6,8 +6,15 @@ import { Navbar } from "@/components/Navbar";
 import { AddBookmarkDialog } from "@/components/AddBookmarkDialog";
 import { BookmarkCard } from "@/components/BookmarkCard";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Download } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Bookmark {
   id: string;
@@ -102,6 +109,16 @@ const Dashboard = () => {
     }
   };
 
+  const handleExport = async (format: 'json' | 'csv') => {
+    const { data, error } = await supabase.functions.invoke('export-bookmarks', {
+      body: { format }
+    });
+
+    if (error) {
+      toast.error("Failed to export bookmarks");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -127,7 +144,27 @@ const Dashboard = () => {
                 {bookmarks.length} {bookmarks.length === 1 ? "bookmark" : "bookmarks"} saved
               </p>
             </div>
-            <AddBookmarkDialog onBookmarkAdded={handleBookmarkAdded} />
+            <div className="flex gap-2">
+              {bookmarks.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => handleExport('json')}>
+                      Export as JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('csv')}>
+                      Export as CSV
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <AddBookmarkDialog onBookmarkAdded={handleBookmarkAdded} />
+            </div>
           </div>
 
           {/* Search */}

@@ -66,27 +66,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          api_key: string | null
           avatar_url: string | null
           created_at: string | null
+          dark_mode: boolean | null
           email: string | null
           full_name: string | null
           id: string
+          notion_database_id: string | null
+          notion_token: string | null
           updated_at: string | null
         }
         Insert: {
+          api_key?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          dark_mode?: boolean | null
           email?: string | null
           full_name?: string | null
           id: string
+          notion_database_id?: string | null
+          notion_token?: string | null
           updated_at?: string | null
         }
         Update: {
+          api_key?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          dark_mode?: boolean | null
           email?: string | null
           full_name?: string | null
           id?: string
+          notion_database_id?: string | null
+          notion_token?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -96,7 +108,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_api_key: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

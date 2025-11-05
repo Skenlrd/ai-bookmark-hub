@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Upload, Grid3x3, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ProfileDropdown } from "./ProfileDropdown";
+import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   user?: {
@@ -17,47 +17,55 @@ interface NavbarProps {
 
 export const Navbar = ({ user }: NavbarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Failed to sign out");
-    } else {
-      toast.success("Signed out successfully");
-      navigate("/auth");
-    }
-  };
-
-  const initials = user?.user_metadata?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || user?.email?.[0].toUpperCase() || "U";
+  const navItems = [
+    { path: "/dashboard", label: "Dashboard", icon: Grid3x3 },
+    { path: "/categories", label: "Categories", icon: Bookmark },
+    { path: "/import", label: "Import", icon: Upload },
+    { path: "/insights", label: "Insights", icon: BarChart3 },
+  ];
 
   return (
-    <nav className="border-b bg-card">
+    <nav className="border-b bg-card sticky top-0 z-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <Bookmark className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-semibold">SmartMark</span>
+          <div className="flex items-center space-x-8">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                <Bookmark className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-semibold hidden sm:inline">SmartMark</span>
+            </button>
+
+            {user && (
+              <div className="hidden md:flex items-center space-x-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Button
+                      key={item.path}
+                      variant="ghost"
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        "flex items-center gap-2",
+                        isActive && "bg-muted text-primary font-medium"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           
-          {user && (
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={user.user_metadata?.avatar_url} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <Button variant="ghost" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          )}
+          {user && <ProfileDropdown user={user} />}
         </div>
       </div>
     </nav>

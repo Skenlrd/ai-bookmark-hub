@@ -2,3 +2,15 @@ project_id = "cwbinywkvfynqyvadgpl"
 
 [functions.categorize-bookmark]
 verify_jwt = true
+
+[functions.notion-sync]
+verify_jwt = true
+
+[functions.export-bookmarks]
+verify_jwt = true
+
+[functions.ai-summary]
+verify_jwt = true
+
+[functions.create-bookmark]
+verify_jwt = false
