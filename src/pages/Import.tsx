@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../integrations/supabase/client"; // Corrected path
 import { User } from "@supabase/supabase-js";
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "../components/Navbar"; // Corrected path
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ const Import = () => {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [totalBookmarks, setTotalBookmarks] = useState(0);
-  const [processedBookmarks, setProcessedBookmarks] = useState(0);
+  const [processedBookmarks, setProcessedBookmarks] = useState(0); // This will now track successful inserts
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -107,6 +107,7 @@ const Import = () => {
     setImporting(true);
     setProgress(0);
     setProcessedBookmarks(0);
+    let successfulImports = 0; // Create a separate counter for successful imports
 
     try {
       const bookmarks = await parseBookmarksFile(file);
@@ -118,25 +119,26 @@ const Import = () => {
       }
 
       setTotalBookmarks(bookmarks.length);
-      toast.success(`Found ${bookmarks.length} bookmarks. Starting import...`);
+      toast.info(`Found ${bookmarks.length} bookmarks. Starting import...`);
 
-      // Import bookmarks with AI categorization
+      // Import bookmarks
       for (let i = 0; i < bookmarks.length; i++) {
         const bookmark = bookmarks[i];
 
         try {
-          // Call categorization function
-          const { data: categorization } = await supabase.functions.invoke(
-            'categorize-bookmark',
-            { body: { url: bookmark.url, title: bookmark.title } }
-          );
+          // --- FIX: SKIP THE FAILING AI CALL ---
+          // const { data: categorization } = await supabase.functions.invoke(
+          //   'categorize-bookmark',
+          //   { body: { url: bookmark.url, title: bookmark.title } }
+          // );
+          const categorization: any = {}; // Set to empty object
 
           // Extract favicon
           const urlObj = new URL(bookmark.url);
           const favicon = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
 
           // Insert bookmark
-          await supabase.from('bookmarks').insert({
+          const { error: insertError } = await supabase.from('bookmarks').insert({
             user_id: user.id,
             url: bookmark.url,
             title: bookmark.title,
@@ -146,23 +148,40 @@ const Import = () => {
             subcategory: categorization?.subcategory || "General",
           });
 
-          setProcessedBookmarks(i + 1);
-          setProgress(((i + 1) / bookmarks.length) * 100);
+          if (insertError) {
+            // If insert fails (e.g., RLS, foreign key), throw error to be caught
+            throw insertError;
+          }
+
+          // This code only runs if the insert was SUCCESSFUL
+          successfulImports++; 
+          setProcessedBookmarks(successfulImports); // Update UI with successful count
+
         } catch (error) {
           console.error(`Failed to import ${bookmark.url}:`, error);
+          // This will log the error to the browser console and continue to the next bookmark
         }
+        
+        // Update progress bar regardless of individual success/failure
+        setProgress(((i + 1) / bookmarks.length) * 100);
 
         // Small delay to avoid rate limiting
-        if (i % 5 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        if (i % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
 
-      toast.success(`Successfully imported ${processedBookmarks} bookmarks!`);
-      setTimeout(() => navigate("/dashboard"), 2000);
+      // Use the successfulImports counter for the final message
+      if (successfulImports > 0) {
+        toast.success(`Successfully imported ${successfulImports} bookmarks!`);
+        setTimeout(() => navigate("/dashboard"), 2000);
+      } else {
+        toast.error("Import failed. All bookmarks encountered an error. Please check the browser console.");
+      }
+      
     } catch (error) {
       console.error("Import error:", error);
-      toast.error("Failed to import bookmarks");
+      toast.error("A critical error occurred during import.");
     } finally {
       setImporting(false);
     }
