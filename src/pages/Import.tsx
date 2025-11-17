@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../integrations/supabase/client"; // Corrected path
+import { supabase, ensureProfile } from "../integrations/supabase/client"; // Corrected path
 import { User } from "@supabase/supabase-js";
 import { Navbar } from "../components/Navbar"; // Corrected path
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,17 +121,24 @@ const Import = () => {
       setTotalBookmarks(bookmarks.length);
       toast.info(`Found ${bookmarks.length} bookmarks. Starting import...`);
 
+      // Ensure user profile exists for FK constraint once per import
+      await ensureProfile();
+
       // Import bookmarks
       for (let i = 0; i < bookmarks.length; i++) {
         const bookmark = bookmarks[i];
 
         try {
-          // --- FIX: SKIP THE FAILING AI CALL ---
-          // const { data: categorization } = await supabase.functions.invoke(
-          //   'categorize-bookmark',
-          //   { body: { url: bookmark.url, title: bookmark.title } }
-          // );
-          const categorization: any = {}; // Set to empty object
+          // Optionally call AI categorization when enabled
+          const enableAI = import.meta.env.VITE_ENABLE_AI_CATEGORIZATION === 'true';
+          let categorization: any = null;
+          if (enableAI) {
+            const { data, error: aiError } = await supabase.functions.invoke(
+              'categorize-bookmark',
+              { body: { url: bookmark.url, title: bookmark.title } }
+            );
+            if (!aiError) categorization = data;
+          }
 
           // Extract favicon
           const urlObj = new URL(bookmark.url);

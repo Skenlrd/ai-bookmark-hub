@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, ensureProfile } from "@/integrations/supabase/client";
 
 type Theme = "light" | "dark";
 
@@ -25,11 +25,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const loadTheme = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Make sure a profile exists to avoid 406/409s
+        await ensureProfile();
         const { data: profile } = await supabase
           .from('profiles')
           .select('dark_mode')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
         if (profile) {
           setThemeState(profile.dark_mode ? "dark" : "light");

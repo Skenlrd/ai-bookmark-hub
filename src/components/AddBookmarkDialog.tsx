@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, ensureProfile } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface AddBookmarkDialogProps {
@@ -51,17 +51,22 @@ export const AddBookmarkDialog = ({ onBookmarkAdded }: AddBookmarkDialogProps) =
         return;
       }
 
-      // Call AI categorization function
-      const { data: categorization, error: aiError } = await supabase.functions.invoke(
-        'categorize-bookmark',
-        {
-          body: { url, title }
-        }
-      );
+      // Ensure user profile exists for FK constraint
+      await ensureProfile();
 
-      if (aiError) {
-        console.error("AI categorization error:", aiError);
-        toast.error("Failed to categorize bookmark with AI");
+      // Optionally call AI categorization
+      const enableAI = import.meta.env.VITE_ENABLE_AI_CATEGORIZATION === 'true';
+      let categorization: any = null;
+      if (enableAI) {
+        const { data, error: aiError } = await supabase.functions.invoke(
+          'categorize-bookmark',
+          { body: { url, title } }
+        );
+        if (aiError) {
+          console.error("AI categorization error:", aiError);
+        } else {
+          categorization = data;
+        }
       }
 
       // Insert bookmark with AI-generated data

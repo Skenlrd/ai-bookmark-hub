@@ -17,3 +17,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     autoRefreshToken: true,
   }
 });
+
+// Ensure a profile row exists for the authenticated user.
+export async function ensureProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Try to upsert a minimal row; RLS allows if auth.uid() = id
+  await supabase
+    .from('profiles')
+    .upsert({ id: user.id, email: user.email ?? null }, { onConflict: 'id' });
+}
