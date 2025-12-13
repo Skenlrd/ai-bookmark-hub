@@ -105,14 +105,17 @@ export const AddBookmarkDialog = ({ onBookmarkAdded }: AddBookmarkDialogProps) =
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="shadow-lg">
+        <Button
+          size="lg"
+          className="rounded-full border border-white/20 bg-gradient-to-r from-[#F7C9D4]/80 via-[#C8E7F4]/80 to-[#CDE6C1]/80 text-[#1B1F3B] shadow-[0_0_12px_#F7C9D4] hover:shadow-[0_0_24px_#C8E7F4]"
+        >
           <Plus className="mr-2 h-5 w-5" />
           Add Bookmark
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Add New Bookmark</DialogTitle>
+          <DialogTitle className="text-2xl" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>Add New Bookmark</DialogTitle>
           <DialogDescription>
             Enter a URL and let AI organize it for you
           </DialogDescription>

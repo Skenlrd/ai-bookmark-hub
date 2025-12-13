@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Copy, RefreshCw } from "lucide-react";
+import { Loader2, Copy, RefreshCw, Trash2, Wand2 } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ const Settings = () => {
   const [apiKey, setApiKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dangerWorking, setDangerWorking] = useState(false);
+  const [recatWorking, setRecatWorking] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -112,6 +114,70 @@ const Settings = () => {
   const copyApiKey = () => {
     navigator.clipboard.writeText(apiKey);
     toast.success("API key copied to clipboard");
+  };
+
+  const handleDeleteAllBookmarks = async () => {
+    if (!user) return;
+    const confirm = window.confirm("This will permanently delete ALL your bookmarks. Continue?");
+    if (!confirm) return;
+
+    setDangerWorking(true);
+    const { error } = await supabase.from('bookmarks').delete().eq('user_id', user.id);
+    if (error) {
+      toast.error("Failed to delete bookmarks");
+    } else {
+      toast.success("All bookmarks deleted");
+    }
+    setDangerWorking(false);
+  };
+
+  const handleRecategorize = async () => {
+    if (!user) return;
+    const enableAI = import.meta.env.VITE_ENABLE_AI_CATEGORIZATION === 'true';
+    if (!enableAI) {
+      toast.error("Enable VITE_ENABLE_AI_CATEGORIZATION=true and deploy the function first");
+      return;
+    }
+
+    setRecatWorking(true);
+    // Fetch uncategorized in batches
+    const { data: items, error } = await supabase
+      .from('bookmarks')
+      .select('id, url, title, description, category, subcategory')
+      .eq('user_id', user.id)
+      .or('category.is.null,category.eq.Uncategorized')
+      .limit(2000);
+
+    if (error) {
+      toast.error("Failed to load bookmarks for recategorization");
+      setRecatWorking(false);
+      return;
+    }
+
+    let updated = 0;
+    for (const b of items || []) {
+      try {
+        const { data, error: aiError } = await supabase.functions.invoke('categorize-bookmark', {
+          body: { url: b.url, title: b.title }
+        });
+        if (!aiError && data) {
+          await supabase
+            .from('bookmarks')
+            .update({
+              category: data.category || 'Uncategorized',
+              subcategory: data.subcategory || 'General',
+              description: data.description || b.description || b.title,
+            })
+            .eq('id', b.id);
+          updated++;
+        }
+      } catch (_) {}
+      // tiny delay to avoid rate limits
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    toast.success(`Re-categorized ${updated} bookmark(s)`);
+    setRecatWorking(false);
   };
 
   if (loading) {
@@ -250,6 +316,51 @@ const Settings = () => {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle>Danger Zone</CardTitle>
+              <CardDescription>
+                Destructive actions. Proceed with caution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Button variant="destructive" onClick={handleDeleteAllBookmarks} disabled={dangerWorking}>
+                  {dangerWorking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete All My Bookmarks
+                    </>
+                  )}
+                </Button>
+
+                <Button variant="outline" onClick={handleRecategorize} disabled={recatWorking}>
+                  {recatWorking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Re-categorizing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Re-categorize Uncategorized
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                To enable AI categorization, set <code>VITE_ENABLE_AI_CATEGORIZATION=true</code> in your .env and deploy
+                the <code>categorize-bookmark</code> function with its required secret.
+              </p>
             </CardContent>
           </Card>
         </div>

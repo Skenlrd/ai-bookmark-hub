@@ -8,28 +8,32 @@ import { BookmarkCard } from "@/components/BookmarkCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Download } from "lucide-react";
-import { toast } from "sonner";
-import {
+  return (
+    <div className="min-h-screen" style={{
+      background: "radial-gradient(1200px 600px at 10% -10%, #C8E7F4 0%, transparent 60%), radial-gradient(1200px 800px at 110% 10%, #F7C9D4 0%, transparent 60%), linear-gradient(180deg, #1B1F3B 0%, #101326 100%)"
+    }}>
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-interface Bookmark {
-  id: string;
-  title: string;
-  url: string;
-  description: string | null;
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="space-y-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl text-white/90" style={{ fontFamily: 'Press Start 2P, system-ui' }}>
+                保存 — My Bookmarks
+              </h1>
+              <p className="text-white/70" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>
+                {bookmarks.length} {bookmarks.length === 1 ? "bookmark" : "bookmarks"} saved
+              </p>
   favicon_url: string | null;
-  category: string | null;
+            <div className="flex gap-2">
   subcategory: string | null;
   notes: string | null;
   created_at: string;
-}
-
-const Dashboard = () => {
-  const navigate = useNavigate();
+                    <Button className="rounded-full border border-white/20 bg-gradient-to-r from-[#C8E7F4]/80 to-[#F7C9D4]/80 text-[#1B1F3B] hover:shadow-[0_0_20px_#C8E7F4]">
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </Button>
   const [user, setUser] = useState<User | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [filteredBookmarks, setFilteredBookmarks] = useState<Bookmark[]>([]);
@@ -47,20 +51,20 @@ const Dashboard = () => {
       }
       setLoading(false);
     });
-
-    // Listen for auth changes
+            <div className="relative max-w-2xl mx-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/70" />
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user);
+                className="pl-12 h-12 rounded-full bg-white/20 text-white placeholder:text-white/70 border border-white/20 backdrop-blur-xl focus-visible:ring-0 focus-visible:border-white/40"
         fetchBookmarks(session.user.id);
       } else {
         setUser(null);
         navigate("/auth");
       }
     });
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     return () => subscription.unsubscribe();
   }, [navigate]);
 
@@ -76,7 +80,7 @@ const Dashboard = () => {
       toast.error("Failed to load bookmarks");
     } else {
       setBookmarks(data || []);
-      setFilteredBookmarks(data || []);
+              <p className="text-xl text-white/70 mb-6" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>
     }
   };
 

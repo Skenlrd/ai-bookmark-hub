@@ -60,7 +60,7 @@ export const BookmarkCard = ({
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200">
+    <Card className="group transition-all duration-300 bg-white/12 backdrop-blur-xl border border-white/20 rounded-2xl hover:shadow-[0_0_24px_#C8E7F4] hover:border-white/30">
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
@@ -75,17 +75,17 @@ export const BookmarkCard = ({
               />
             )}
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg leading-tight line-clamp-2">
+              <CardTitle className="text-lg leading-tight line-clamp-2 text-white/95">
                 {title}
               </CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
                 {category && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border border-white/20">
                     {category}
                   </Badge>
                 )}
                 {subcategory && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs bg-transparent text-white/80 border-white/30">
                     {subcategory}
                   </Badge>
                 )}
@@ -99,6 +99,7 @@ export const BookmarkCard = ({
               onClick={handleNotionSync}
               disabled={syncing}
               title="Sync to Notion"
+              className="text-white/80 hover:text-white"
             >
               <Upload className="h-4 w-4" />
             </Button>
@@ -106,13 +107,14 @@ export const BookmarkCard = ({
               variant="ghost"
               size="icon"
               onClick={handleDelete}
+              className="text-white/80 hover:text-white"
             >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
         </div>
         {description && (
-          <CardDescription className="text-sm line-clamp-2">
+          <CardDescription className="text-sm line-clamp-2 text-white/80">
             {description}
           </CardDescription>
         )}
@@ -120,7 +122,7 @@ export const BookmarkCard = ({
       <CardContent>
         <div className="space-y-3">
           {notes && (
-            <p className="text-sm text-muted-foreground italic border-l-2 border-primary pl-3">
+            <p className="text-sm text-white/80 italic border-l-2 border-white/30 pl-3">
               {notes}
             </p>
           )}
@@ -128,7 +130,7 @@ export const BookmarkCard = ({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center text-sm text-primary hover:underline"
+            className="flex items-center text-sm text-[#C8E7F4] hover:underline"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             <span className="truncate">{url}</span>
