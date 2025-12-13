@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Loader2 } from "lucide-react";
 import { supabase, ensureProfile } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { categorizeWithGroq } from "@/lib/groq";
 
 interface AddBookmarkDialogProps {
   onBookmarkAdded: () => void;
@@ -54,19 +55,16 @@ export const AddBookmarkDialog = ({ onBookmarkAdded }: AddBookmarkDialogProps) =
       // Ensure user profile exists for FK constraint
       await ensureProfile();
 
-      // Optionally call AI categorization
-      const enableAI = import.meta.env.VITE_ENABLE_AI_CATEGORIZATION === 'true';
+      // Call AI categorization
       let categorization: any = null;
-      if (enableAI) {
-        const { data, error: aiError } = await supabase.functions.invoke(
-          'categorize-bookmark',
-          { body: { url, title } }
-        );
-        if (aiError) {
-          console.error("AI categorization error:", aiError);
-        } else {
-          categorization = data;
-        }
+      try {
+        categorization = await categorizeWithGroq(url, title);
+      } catch (aiError) {
+        console.error("AI categorization error:", aiError);
+        toast({
+          title: "AI Error",
+          description: "Could not categorize, saving without category",
+        });
       }
 
       // Insert bookmark with AI-generated data
@@ -105,17 +103,14 @@ export const AddBookmarkDialog = ({ onBookmarkAdded }: AddBookmarkDialogProps) =
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          size="lg"
-          className="rounded-full border border-white/20 bg-gradient-to-r from-[#F7C9D4]/80 via-[#C8E7F4]/80 to-[#CDE6C1]/80 text-[#1B1F3B] shadow-[0_0_12px_#F7C9D4] hover:shadow-[0_0_24px_#C8E7F4]"
-        >
+        <Button size="lg" className="rounded-full">
           <Plus className="mr-2 h-5 w-5" />
           Add Bookmark
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>Add New Bookmark</DialogTitle>
+          <DialogTitle className="text-2xl">Add New Bookmark</DialogTitle>
           <DialogDescription>
             Enter a URL and let AI organize it for you
           </DialogDescription>

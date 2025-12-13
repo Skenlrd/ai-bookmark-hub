@@ -1,8 +1,9 @@
-import { ExternalLink, Trash2, Upload } from "lucide-react";
+import { ExternalLink, Trash2, Upload, Check } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +17,8 @@ interface BookmarkCardProps {
   subcategory?: string;
   notes?: string;
   onDelete: () => void;
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 export const BookmarkCard = ({
@@ -28,6 +31,8 @@ export const BookmarkCard = ({
   subcategory,
   notes,
   onDelete,
+  isSelected = false,
+  onSelect,
 }: BookmarkCardProps) => {
   const [syncing, setSyncing] = useState(false);
 
@@ -60,10 +65,17 @@ export const BookmarkCard = ({
   };
 
   return (
-    <Card className="group transition-all duration-300 bg-white/12 backdrop-blur-xl border border-white/20 rounded-2xl hover:shadow-[0_0_24px_#C8E7F4] hover:border-white/30">
+    <Card className={`group transition-all duration-300 border rounded-xl hover:shadow-md hover:border-primary/50 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
+            {onSelect && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelect(id)}
+                className="mt-1 flex-shrink-0"
+              />
+            )}
             {favicon_url && (
               <img 
                 src={favicon_url} 
@@ -75,17 +87,17 @@ export const BookmarkCard = ({
               />
             )}
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg leading-tight line-clamp-2 text-white/95">
+              <CardTitle className="text-lg leading-tight line-clamp-2">
                 {title}
               </CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
                 {category && (
-                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border border-white/20">
+                  <Badge variant="secondary" className="text-xs">
                     {category}
                   </Badge>
                 )}
                 {subcategory && (
-                  <Badge variant="outline" className="text-xs bg-transparent text-white/80 border-white/30">
+                  <Badge variant="outline" className="text-xs">
                     {subcategory}
                   </Badge>
                 )}
@@ -99,7 +111,6 @@ export const BookmarkCard = ({
               onClick={handleNotionSync}
               disabled={syncing}
               title="Sync to Notion"
-              className="text-white/80 hover:text-white"
             >
               <Upload className="h-4 w-4" />
             </Button>
@@ -107,14 +118,13 @@ export const BookmarkCard = ({
               variant="ghost"
               size="icon"
               onClick={handleDelete}
-              className="text-white/80 hover:text-white"
             >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
         </div>
         {description && (
-          <CardDescription className="text-sm line-clamp-2 text-white/80">
+          <CardDescription className="text-sm line-clamp-2">
             {description}
           </CardDescription>
         )}
@@ -122,7 +132,7 @@ export const BookmarkCard = ({
       <CardContent>
         <div className="space-y-3">
           {notes && (
-            <p className="text-sm text-white/80 italic border-l-2 border-white/30 pl-3">
+            <p className="text-sm italic border-l-2 border-muted pl-3">
               {notes}
             </p>
           )}
@@ -130,7 +140,7 @@ export const BookmarkCard = ({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center text-sm text-[#C8E7F4] hover:underline"
+            className="flex items-center text-sm text-primary hover:underline"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             <span className="truncate">{url}</span>

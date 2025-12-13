@@ -7,38 +7,38 @@ import { AddBookmarkDialog } from "@/components/AddBookmarkDialog";
 import { BookmarkCard } from "@/components/BookmarkCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Download } from "lucide-react";
-  return (
-    <div className="min-h-screen" style={{
-      background: "radial-gradient(1200px 600px at 10% -10%, #C8E7F4 0%, transparent 60%), radial-gradient(1200px 800px at 110% 10%, #F7C9D4 0%, transparent 60%), linear-gradient(180deg, #1B1F3B 0%, #101326 100%)"
-    }}>
+import { Search, Download, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+import { categorizeWithGroq } from "@/lib/groq";
+import {
   DropdownMenu,
   DropdownMenuContent,
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl text-white/90" style={{ fontFamily: 'Press Start 2P, system-ui' }}>
-                保存 — My Bookmarks
-              </h1>
-              <p className="text-white/70" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>
-                {bookmarks.length} {bookmarks.length === 1 ? "bookmark" : "bookmarks"} saved
-              </p>
+
+interface Bookmark {
+  id: string;
+  title: string;
+  url: string;
+  description: string | null;
   favicon_url: string | null;
-            <div className="flex gap-2">
+  category: string | null;
   subcategory: string | null;
   notes: string | null;
   created_at: string;
-                    <Button className="rounded-full border border-white/20 bg-gradient-to-r from-[#C8E7F4]/80 to-[#F7C9D4]/80 text-[#1B1F3B] hover:shadow-[0_0_20px_#C8E7F4]">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
+}
+
+const Dashboard = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [filteredBookmarks, setFilteredBookmarks] = useState<Bookmark[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [categorizingAll, setCategorizingAll] = useState(false);
+  const [categorizingProgress, setCategorizingProgress] = useState(0);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Get initial session
@@ -51,20 +51,20 @@ import { Search, Download } from "lucide-react";
       }
       setLoading(false);
     });
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/70" />
+
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-                className="pl-12 h-12 rounded-full bg-white/20 text-white placeholder:text-white/70 border border-white/20 backdrop-blur-xl focus-visible:ring-0 focus-visible:border-white/40"
+        setUser(session.user);
         fetchBookmarks(session.user.id);
       } else {
         setUser(null);
         navigate("/auth");
       }
     });
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
     return () => subscription.unsubscribe();
   }, [navigate]);
 
@@ -80,7 +80,7 @@ import { Search, Download } from "lucide-react";
       toast.error("Failed to load bookmarks");
     } else {
       setBookmarks(data || []);
-              <p className="text-xl text-white/70 mb-6" style={{ fontFamily: 'Noto Sans JP, Inter, system-ui' }}>
+      setFilteredBookmarks(data || []);
     }
   };
 
@@ -123,6 +123,98 @@ import { Search, Download } from "lucide-react";
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedBookmarks.size === filteredBookmarks.length) {
+      setSelectedBookmarks(new Set());
+    } else {
+      setSelectedBookmarks(new Set(filteredBookmarks.map(b => b.id)));
+    }
+  };
+
+  const handleSelectBookmark = (id: string) => {
+    const newSelected = new Set(selectedBookmarks);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedBookmarks(newSelected);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("No bookmarks selected");
+      return;
+    }
+
+    const { error } = await supabase
+      .from('bookmarks')
+      .delete()
+      .in('id', Array.from(selectedBookmarks));
+
+    if (error) {
+      toast.error("Failed to delete bookmarks");
+    } else {
+      toast.success(`Deleted ${selectedBookmarks.size} bookmarks`);
+      setSelectedBookmarks(new Set());
+      handleBookmarkDeleted();
+    }
+  };
+
+  const categorizeAllUncategorized = async () => {
+    const uncategorized = bookmarks.filter(b => !b.category || b.category === "Uncategorized");
+    
+    if (uncategorized.length === 0) {
+      toast.info("All bookmarks are already categorized!");
+      return;
+    }
+
+    setCategorizingAll(true);
+    setCategorizingProgress(0);
+    let successCount = 0;
+
+    for (let i = 0; i < uncategorized.length; i++) {
+      const bookmark = uncategorized[i];
+      
+      try {
+        const result = await categorizeWithGroq(bookmark.url, bookmark.title);
+        
+        // Add delay to respect rate limits (200ms is enough for Groq)
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        const { error } = await supabase
+          .from('bookmarks')
+          .update({
+            category: result.category,
+            subcategory: result.subcategory,
+            description: result.description,
+          })
+          .eq('id', bookmark.id);
+
+        if (!error) {
+          successCount++;
+        }
+        
+        // Add delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`Failed to categorize ${bookmark.title}:`, error);
+      }
+
+      setCategorizingProgress(((i + 1) / uncategorized.length) * 100);
+    }
+
+    setCategorizingAll(false);
+    setCategorizingProgress(0);
+    
+    if (successCount > 0) {
+      toast.success(`Categorized ${successCount} bookmarks!`);
+      if (user) {
+        fetchBookmarks(user.id);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -150,22 +242,46 @@ import { Search, Download } from "lucide-react";
             </div>
             <div className="flex gap-2">
               {bookmarks.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
+                <>
+                  <Button 
+                    onClick={categorizeAllUncategorized}
+                    disabled={categorizingAll}
+                    variant="outline"
+                  >
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    {categorizingAll ? `Categorizing... ${Math.round(categorizingProgress)}%` : "Categorize All"}
+                  </Button>
+                  <Button 
+                    onClick={handleSelectAll}
+                    variant={selectedBookmarks.size > 0 ? "default" : "outline"}
+                  >
+                    {selectedBookmarks.size > 0 ? `Selected ${selectedBookmarks.size}` : "Select All"}
+                  </Button>
+                  {selectedBookmarks.size > 0 && (
+                    <Button 
+                      onClick={handleDeleteSelected}
+                      variant="destructive"
+                    >
+                      Delete ({selectedBookmarks.size})
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleExport('json')}>
-                      Export as JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('csv')}>
-                      Export as CSV
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleExport('json')}>
+                        Export as JSON
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport('csv')}>
+                        Export as CSV
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               )}
               <AddBookmarkDialog onBookmarkAdded={handleBookmarkAdded} />
             </div>
@@ -197,6 +313,8 @@ import { Search, Download } from "lucide-react";
                   subcategory={bookmark.subcategory || undefined}
                   notes={bookmark.notes || undefined}
                   onDelete={handleBookmarkDeleted}
+                  isSelected={selectedBookmarks.has(bookmark.id)}
+                  onSelect={handleSelectBookmark}
                 />
               ))}
             </div>

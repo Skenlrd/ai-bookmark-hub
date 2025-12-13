@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Upload, FileJson, Loader2 } from "lucide-react";
+import { categorizeWithGroq } from "@/lib/groq";
 
 interface BookmarkItem {
   title: string;
@@ -133,11 +134,14 @@ const Import = () => {
           const enableAI = import.meta.env.VITE_ENABLE_AI_CATEGORIZATION === 'true';
           let categorization: any = null;
           if (enableAI) {
-            const { data, error: aiError } = await supabase.functions.invoke(
-              'categorize-bookmark',
-              { body: { url: bookmark.url, title: bookmark.title } }
-            );
-            if (!aiError) categorization = data;
+            try {
+              categorization = await categorizeWithGroq(bookmark.url, bookmark.title);
+              // Groq has good rate limits, but add small delay anyway
+              await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (aiError) {
+              console.error("AI categorization error:", aiError);
+              // Continue without categorization if it fails
+            }
           }
 
           // Extract favicon
