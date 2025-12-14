@@ -67,7 +67,7 @@ export const AddBookmarkDialog = ({ onBookmarkAdded }: AddBookmarkDialogProps) =
         });
       }
 
-      // Insert bookmark with AI-generated data
+      // Insert bookmark with categorization data
       const { error: insertError } = await supabase
         .from('bookmarks')
         .insert({

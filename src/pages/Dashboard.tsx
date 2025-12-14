@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Download, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { categorizeWithGroq } from "@/lib/groq";
+import type { Tables } from "@/integrations/supabase/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,17 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Bookmark {
-  id: string;
-  title: string;
-  url: string;
-  description: string | null;
-  favicon_url: string | null;
-  category: string | null;
-  subcategory: string | null;
-  notes: string | null;
-  created_at: string;
-}
+type Bookmark = Tables<"bookmarks">;
 
 const Dashboard = () => {
   const navigate = useNavigate();

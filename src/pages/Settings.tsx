@@ -157,7 +157,7 @@ const Settings = () => {
     let updated = 0;
     for (const b of items || []) {
       try {
-        const { data, error: aiError } = await supabase.functions.invoke('categorize-bookmark', {
+        const { data, error: aiError } = await supabase.functions.invoke('groq-categorize', {
           body: { url: b.url, title: b.title }
         });
         if (!aiError && data) {
@@ -359,7 +359,7 @@ const Settings = () => {
               </div>
               <p className="text-xs text-muted-foreground">
                 To enable AI categorization, set <code>VITE_ENABLE_AI_CATEGORIZATION=true</code> in your .env and deploy
-                the <code>categorize-bookmark</code> function with its required secret.
+                the <code>groq-categorize</code> function with the <code>GROQ_API_KEY</code> secret set in Supabase.
               </p>
             </CardContent>
           </Card>

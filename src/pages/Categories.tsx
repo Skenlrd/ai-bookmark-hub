@@ -147,7 +147,7 @@ const Categories = () => {
           <div>
             <h1 className="text-4xl font-bold">Categories</h1>
             <p className="text-muted-foreground mt-2">
-              Browse your bookmarks organized by AI-generated categories
+              Browse your bookmarks organized by smart categories
             </p>
           </div>
 

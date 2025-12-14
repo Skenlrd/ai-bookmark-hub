@@ -40,12 +40,12 @@ where p.id is null;
 ```
 
 5) Edge Functions (optional features)
-- The app calls Supabase Edge Functions like `categorize-bookmark`, `export-bookmarks`, `ai-summary`, `notion-sync`.
+- The app calls Supabase Edge Functions like `groq-categorize`, `export-bookmarks`, `ai-summary`, `notion-sync`.
 - To use them, deploy with the Supabase CLI:
 ```
 supabase login
 supabase link --project-ref <your-project-ref>
-supabase functions deploy categorize-bookmark
+supabase functions deploy groq-categorize
 supabase functions deploy create-bookmark
 supabase functions deploy export-bookmarks
 supabase functions deploy ai-summary
@@ -59,10 +59,10 @@ Common issues
 - `npm start` fails: This project uses Vite’s `dev` script. Use `npm run dev`.
 
 AI Categorization
-- The app can auto-categorize bookmarks via a Supabase Edge Function `categorize-bookmark` that calls an AI gateway.
+- The app can auto-categorize bookmarks via a Supabase Edge Function `groq-categorize`.
 - To enable it:
-	1. Deploy the function: `supabase functions deploy categorize-bookmark`
-	2. Set the secret: `supabase secrets set --project-ref <your-ref> LOVABLE_API_KEY=<your-key>`
+	1. Deploy the function: `supabase functions deploy groq-categorize`
+	2. Set the secret: `supabase secrets set --project-ref <your-ref> GROQ_API_KEY=<your-key>`
 	3. In your `.env`, set `VITE_ENABLE_AI_CATEGORIZATION=true` and restart `npm run dev`.
 - If disabled or if the function fails, bookmarks default to `Uncategorized / General`.
 
